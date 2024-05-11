@@ -6,7 +6,10 @@ class User(AbstractUser):
     is_player = models.BooleanField(default=False)
     is_coach = models.BooleanField(default=False)
     is_jury = models.BooleanField(default=False)
-
+    date_of_birth = models.DateField(null=True, blank=True)
+    height = models.FloatField(null=True, blank=True)
+    weight = models.FloatField(null=True, blank=True)
+    nationality = models.CharField(max_length=100, null=True, blank=True)
     class Meta:
         # Adding unique related_names to avoid clashes
         db_table = 'custom_user'
