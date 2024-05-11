@@ -77,9 +77,9 @@ WSGI_APPLICATION = 'volleydb.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'djangod',  # Name of your database
+        'NAME': 'volleydb',  # Name of your database
         'USER': 'root',  # Your MySQL username
-        'PASSWORD': 'Ememno96.',  # Your MySQL password
+        'PASSWORD': 'abcd1234',  # Your MySQL password
         'HOST': 'localhost',  # Your database host
         'PORT': '3306',  # Default MySQL port
     }
