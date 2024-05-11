@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+</head>
+<body>
+    <h1>Welcome to the Dashboard</h1>
+    {% if user.is_authenticated %}
+        <p>Hello, {{ user.username }}!</p>
+        {% if user.is_manager %}
+            <p>You are logged in as a Manager.</p>
+        {% elif user.is_player %}
+            <p>You are logged in as a Player.</p>
+        {% elif user.is_coach %}
+            <p>You are logged in as a Coach.</p>
+        {% elif user.is_jury %}
+            <p>You are logged in as a Jury.</p>
+        {% endif %}
+    {% endif %}
+    <a href="{% url 'logout' %}">Logout</a>
+</body>
+</html>
