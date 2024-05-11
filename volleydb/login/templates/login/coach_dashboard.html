@@ -1,7 +1,42 @@
-<!-- Form for deleting a Match Session -->
-<form method="post" action="">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="delete_session">
-    Session ID to Delete: <input type="text" name="session_id"><br>
-    <input type="submit" value="Delete Session">
-</form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Coach Dashboard</title>
+</head>
+<body>
+    <h1>Welcome, Coach!</h1>
+    <p>This is your dashboard. Manage your team, view player performances, and plan training sessions here.</p>
+
+    <!-- Form for deleting a Match Session -->
+    <form method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete_session">
+        Session ID to Delete: <input type="text" name="session_id"><br>
+        <input type="submit" value="Delete Session">
+    </form>
+    <h2>Add Match Session</h2>
+    <form method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_session">
+        Team ID: <input type="number" name="team_id" required><br>
+        Stadium Name: <input type="text" name="stadium_name" required><br>
+        Stadium Country: <input type="text" name="stadium_country" required><br>
+        Date: <input type="date" name="date" required><br>
+        Time Slot: <input type="number" name="time_slot" required><br>
+        Jury Name: <input type="text" name="jury_name" required><br>
+        Jury Surname: <input type="text" name="jury_surname" required><br>
+        <input type="submit" value="Add Session">
+    </form>
+    <h2>Create Squad for Session</h2>
+    <form method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_squad">
+        Session ID: <input type="number" name="session_id" required><br>
+        Player Username: <input type="text" name="player_username" required><br>
+        Position ID: <input type="number" name="position_id" required><br>
+        <input type="submit" value="Add Player to Squad">
+    </form>
+    
+</body>
+</html>

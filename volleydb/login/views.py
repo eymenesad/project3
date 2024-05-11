@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 import mysql.connector
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
+from django.db import IntegrityError, transaction
 
 mydb = mysql.connector.connect(
   host="127.0.0.1",
@@ -60,28 +61,72 @@ def jury_dashboard_view(request):
 def coach_dashboard_view(request):
     if request.method == 'POST':
         action = request.POST.get('action')
-        
+        if action == 'create_squad':
+            session_id = request.POST.get('session_id')
+            player_username = request.POST.get('player_username')
+            position_id = request.POST.get('position_id')
+
+            # Get the coach's username from the session or another source
+            coach_username = request.session.get('username')
+            
+            
+            # Check if the player is in the coach's team
+            cursor.execute("""
+                SELECT COUNT(*)
+                FROM PlayerTeams PT
+                JOIN Team T ON PT.team = T.team_ID
+                WHERE PT.username = %s AND T.coach_username = %s
+            """, [player_username, coach_username])
+            player_count = cursor.fetchone()[0]
+
+            if player_count == 0:
+                return HttpResponse("Player is not in your team.")
+
+            try:
+                with transaction.atomic():
+                    cursor.execute("""
+                        INSERT INTO SessionSquads (session_ID, played_player_username, position_ID)
+                        VALUES (%s, %s, %s)
+                    """, [session_id, player_username, position_id])
+            except IntegrityError:
+                return HttpResponse("Failed to add player to squad.")
+
+            return HttpResponse("Player added to squad successfully.")
         if action == 'delete_session':
             session_id = request.POST.get('session_id')
-            
         
-            # Begin a transaction
-            cursor.execute("BEGIN;")
+            # Delete from SessionSquads first to maintain referential integrity
+            cursor.execute("DELETE FROM SessionSquads WHERE session_ID = %s", [session_id])
+            # Then delete the MatchSession
+            cursor.execute("DELETE FROM MatchSession WHERE session_ID = %s", [session_id])
+            return HttpResponse("Match session and associated squad data deleted successfully.")
+        if action == 'add_session':
+            team_id = request.POST.get('team_id')
+            stadium_name = request.POST.get('stadium_name')
+            stadium_country = request.POST.get('stadium_country')
+            date = request.POST.get('date')
+            time_slot = request.POST.get('time_slot')
+            jury_name = request.POST.get('jury_name')
+            jury_surname = request.POST.get('jury_surname')
+
+        
+            # Find jury username by name and surname
+            cursor.execute("SELECT username FROM Jury WHERE name = %s AND surname = %s", [jury_name, jury_surname])
+            jury_result = cursor.fetchone()
+            if not jury_result:
+                return HttpResponse("No such jury found.")
+            jury_username = jury_result[0]
+
             try:
-                # Delete related data in squad info
-                cursor.execute("DELETE FROM squad_info WHERE session_id = %s", [session_id])
-                
-                # Delete the match session
-                cursor.execute("DELETE FROM match_sessions WHERE session_id = %s", [session_id])
-                
-                # Commit transaction
-                cursor.execute("COMMIT;")
-                return HttpResponse("Match session deleted successfully.")
-            
-            except Exception as e:
-                # Rollback in case of error
-                cursor.execute("ROLLBACK;")
-                return HttpResponse(f"Error deleting session: {str(e)}")
+                with transaction.atomic():
+                    cursor.execute("INSERT INTO MatchSession (team_ID, stadium_name, stadium_country, time_slot, date, assigned_jury_username, rating) VALUES (%s, %s, %s, %s, %s, %s, NULL)", 
+                                    [team_id, stadium_name, stadium_country, time_slot, date, jury_username])
+            except IntegrityError:
+                return HttpResponse("Failed to add session due to a scheduling conflict or invalid data.")
+
+            return HttpResponse("Match session added successfully.")
+    
+    return render(request, 'login/coach_dashboard.html')
 
     # GET request: render the coach dashboard template
     return render(request, 'login/coach_dashboard.html')
