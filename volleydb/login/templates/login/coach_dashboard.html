@@ -1,11 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Coach Dashboard</title>
-</head>
-<body>
-    <h1>Welcome, Coach!</h1>
-    <p>This is your dashboard. Manage your team, view player performances, and plan training sessions here.</p>
-</body>
-</html>
+<!-- Form for deleting a Match Session -->
+<form method="post" action="">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="delete_session">
+    Session ID to Delete: <input type="text" name="session_id"><br>
+    <input type="submit" value="Delete Session">
+</form>

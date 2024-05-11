@@ -1,11 +1,45 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Manager Dashboard</title>
-</head>
-<body>
-    <h1>Welcome, Manager!</h1>
-    <p>This is your dashboard. Oversee club operations, view financial reports, and manage contracts and sponsorships.</p>
-</body>
-</html>
+<form method="post" action="">
+    {% csrf_token %}
+    <input type="hidden" name="form_type" value="update_stadium">
+    Old Stadium Name: <input type="text" name="old_name"><br>
+    New Stadium Name: <input type="text" name="new_name"><br>
+    <input type="submit" value="Update Stadium">
+  </form>
+<!-- Form for adding a Player -->
+<form method="post" action="">
+    {% csrf_token %}
+    <input type="hidden" name="form_type" value="player">
+    Username: <input type="text" name="username" ><br>
+    Password: <input type="password" name="password"><br>
+    Name: <input type="text" name="name"><br>
+    Surname: <input type="text" name="surname"><br>
+    Date of Birth: <input type="date" name="date_of_birth"><br>
+    Height: <input type="number" name="height"><br>
+    Weight: <input type="number" name="weight"><br>
+    <input type="submit" value="Add Player">
+  </form>
+  
+  <!-- Form for adding a Coach -->
+  <form method="post" action="">
+    {% csrf_token %}
+    <input type="hidden" name="form_type" value="coach">
+    Username: <input type="text" name="username"><br>
+    Password: <input type="password" name="password"><br>
+    Name: <input type="text" name="name"><br>
+    Surname: <input type="text" name="surname"><br>
+    Nationality: <input type="text" name="nationality"><br>
+    <input type="submit" value="Add Coach">
+  </form>
+  
+  <!-- Form for adding a Jury -->
+  <form method="post" action="">
+    {% csrf_token %}
+    <input type="hidden" name="form_type" value="jury">
+    Username: <input type="text" name="username"><br>
+    Password: <input type="password" name="password"><br>
+    Name: <input type="text" name="name"><br>
+    Surname: <input type="text" name="surname"><br>
+    Nationality: <input type="text" name="nationality"><br>
+    <input type="submit" value="Add Jury">
+  </form>
+  
