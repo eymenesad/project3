@@ -5,7 +5,57 @@
     <title>Player Dashboard</title>
 </head>
 <body>
-    <h1>Welcome, Player!</h1>
-    <p>This is your dashboard. Here you can view your performance stats, upcoming games, and training schedule.</p>
+    <h1>Player Dashboard</h1>
+    <h2>Players Played With</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Name</th>
+                <th>Surname</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for player in players %}
+            <tr>
+                <td>{{ player.username }}</td>
+                <td>{{ player.name }}</td>
+                <td>{{ player.surname }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">No players found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Most Played With Players</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Name</th>
+                <th>Surname</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for player in most_played_with %}
+            <tr>
+                <td>{{ player.username }}</td>
+                <td>{{ player.name }}</td>
+                <td>{{ player.surname }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">No frequent players found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if most_played_with_height %}
+    <h2>Average Height of Most Played With Players: {{ most_played_with_height }} cm</h2>
+    {% endif %}
 </body>
 </html>

@@ -9,6 +9,7 @@ from django.shortcuts import render
 from django.db import IntegrityError, transaction
 from datetime import datetime
 from django.contrib import messages
+from django.db import connection
 
 mydb = mysql.connector.connect(
   host="127.0.0.1",
@@ -63,25 +64,81 @@ def jury_dashboard_view(request):
     jury_username = request.session.get('username')
 
 
-    # Query to find average rating and count of rated sessions
-    cursor.execute("""
-        SELECT AVG(rating) as average_rating, COUNT(*) as total_sessions
-        FROM MatchSession
-        WHERE assigned_jury_username = %s AND rating IS NOT NULL
-    """, [jury_username])
-    result = cursor.fetchone()
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'rate_session':
+            date = request.POST.get('date')
+            formatted_date = datetime.strptime(date, "%Y-%m-%d").strftime("%d.%m.%Y")
+            date = formatted_date
+            input_date = '2024-05-12'
+            time_slot = request.POST.get('time_slot')
+            stadium_name = request.POST.get('stadium_name')
+            rating = request.POST.get('rating')  # Getting the rating from the user input
 
-    average_rating = result[0] if result[0] is not None else "No ratings yet"
-    total_sessions = result[1]
+            # Find stadium ID by stadium name
+            cursor.execute("SELECT stadium_ID FROM Stadium WHERE stadium_name = %s", [stadium_name])
+            stadium_result = cursor.fetchone()
+            if not stadium_result:
+                return HttpResponse("No such stadium found.")
+            stadium_ID = stadium_result[0]
 
-    # Passing the results to the template
-    return render(request, 'login/jury_dashboard.html', {
-        'average_rating': average_rating,
-        'total_sessions': total_sessions
-    })
+            query = """
+                SELECT ms.session_ID, ms.team_ID, ms.date, ms.time_slot, ms.stadium_ID
+                FROM MatchSession ms
+                WHERE ms.assigned_jury_username = %s
+                AND ms.rating IS NULL
+                AND ms.date < %s
+                AND ms.date = %s
+                AND ms.time_slot = %s
+                AND ms.stadium_ID = %s
+            """
+
+            params = [jury_username, input_date, date, time_slot, stadium_ID]
+
+
+            cursor.execute(query, params)
+            session = cursor.fetchone()
+
+            # Check if a session is returned
+            if session:
+                session_id = session[0]  # Assuming session_ID is the first column returned
+
+                # SQL query to update the rating
+                update_query = """
+                    UPDATE MatchSession
+                    SET rating = %s
+                    WHERE session_ID = %s
+                """
+
+                # Execute the update
+                cursor.execute(update_query, [rating, session_id])
+                mydb.commit()  # Make sure to commit the transaction if you're not using Django's atomic block
+
+                return HttpResponse("Session " + str(session_id) + " successfully rated with rating " + str(rating))
+            else:
+                # No session matches the criteria or it cannot be rated
+                return HttpResponse("No valid session found or it cannot be rated yet.")
+    else:
+        # Query to find average rating and count of rated sessions
+        cursor.execute("""
+            SELECT AVG(rating) as average_rating, COUNT(*) as total_sessions
+            FROM MatchSession
+            WHERE assigned_jury_username = %s AND rating IS NOT NULL
+        """, [jury_username])
+        result = cursor.fetchone()
+
+        average_rating = result[0] if result[0] is not None else "No ratings yet"
+        total_sessions = result[1]
+        
+        # Passing the results to the template
+        return render(request, 'login/jury_dashboard.html', {
+            'average_rating': average_rating,
+            'total_sessions': total_sessions
+        })
+
+
 
 def coach_dashboard_view(request):
-    
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -117,6 +174,7 @@ def coach_dashboard_view(request):
                 return HttpResponse("Failed to add player to squad.")
 
             return HttpResponse("Player added to squad successfully.")
+        
         if action == 'delete_session':
             session_id = request.POST.get('session_id')
 
@@ -127,6 +185,7 @@ def coach_dashboard_view(request):
             cursor.execute("DELETE FROM MatchSession WHERE session_ID = %s", [session_id])
             mydb.commit()
             return HttpResponse("Match session and associated squad data deleted successfully.")
+        
         if action == 'add_session':
             stadium_name = request.POST.get('stadium_name')
             date = request.POST.get('date')
@@ -191,9 +250,71 @@ def coach_dashboard_view(request):
         stadiums_list = [{'name': stadium[0], 'country': stadium[1]} for stadium in stadiums]
         return render(request, 'login/coach_dashboard.html', {'stadiums_list': stadiums_list})
     return render(request, 'login/coach_dashboard.html')
+
+
 def player_dashboard_view(request):
-    # Your logic here, if any
-    return render(request, 'login/player_dashboard.html')
+    username = request.session.get('username')
+    with connection.cursor() as cursor:
+        # Fetch players played with in shared sessions
+        cursor.execute("""
+            SELECT DISTINCT p.username, p.name, p.surname
+            FROM Player p
+            JOIN SessionSquads ss ON p.username = ss.played_player_username
+            JOIN SessionSquads ss2 ON ss.session_id = ss2.session_id
+            WHERE ss2.played_player_username = %s AND p.username != %s
+        """, [username, username])
+        players = cursor.fetchall()
+
+        # Fetch session IDs where the current player has participated
+        cursor.execute("""
+            SELECT session_id
+            FROM SessionSquads
+            WHERE played_player_username = %s
+        """, [username])
+        session_ids = [item[0] for item in cursor.fetchall()]
+
+        # Prepare for IN clause dynamically
+        placeholders = ','.join(['%s'] * len(session_ids))  # Create placeholders for the tuple
+
+        # Fetch the most frequently played with players
+        if session_ids:
+            cursor.execute(f"""
+                SELECT p.username, p.name, p.surname, COUNT(*) as count
+                FROM SessionSquads ss
+                JOIN Player p ON p.username = ss.played_player_username
+                WHERE ss.session_id IN ({placeholders}) AND ss.played_player_username != %s
+                GROUP BY ss.played_player_username
+                ORDER BY count DESC
+            """, session_ids + [username])
+            most_played_with = cursor.fetchall()
+
+            # Identify the highest frequency count to find the most played with
+            highest_count = most_played_with[0][3] if most_played_with else 0
+            most_frequent_users = [player[:3] for player in most_played_with if player[3] == highest_count]
+
+            # Compute the average height of the most frequently played with players
+            if most_frequent_users:
+                user_placeholders = ','.join(['%s'] * len(most_frequent_users))
+                cursor.execute(f"""
+                    SELECT AVG(height)
+                    FROM Player
+                    WHERE username IN ({user_placeholders})
+                """, [user[0] for user in most_frequent_users])
+                most_played_with_height = cursor.fetchone()[0]
+            else:
+                most_played_with_height = None
+        else:
+            most_played_with_height = None
+            most_frequent_users = []
+
+        context = {
+            'players': [{'username': player[0], 'name': player[1], 'surname': player[2]} for player in players],
+            'most_played_with': [{'username': player[0], 'name': player[1], 'surname': player[2]} for player in most_frequent_users],
+            'most_played_with_height': most_played_with_height
+        }
+
+    return render(request, 'login/player_dashboard.html', context)
+
 def manager_dashboard_view(request):
     if request.method == 'POST':
         form_type = request.POST.get('form_type')
