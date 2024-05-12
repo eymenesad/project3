@@ -75,7 +75,7 @@ def jury_dashboard_view(request):
     total_sessions = result[1]
 
     # Passing the results to the template
-    return render(request, 'jury_dashboard.html', {
+    return render(request, 'login/jury_dashboard.html', {
         'average_rating': average_rating,
         'total_sessions': total_sessions
     })
