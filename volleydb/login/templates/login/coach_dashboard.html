@@ -8,7 +8,16 @@
     <h1>Welcome, Coach!</h1>
     <p>This is your dashboard. Manage your team, view player performances, and plan training sessions here.</p>
 
+    <h2>Stadiums List</h2>
+    <ul>
+        {% for stadium in stadiums_list %}
+            <li>{{ stadium.name }} - {{ stadium.country }}</li>
+        {% empty %}
+            <li>No stadiums found.</li>
+        {% endfor %}
+    </ul>
     <!-- Form for deleting a Match Session -->
+    <h2> Delete Session</h2>
     <form method="post" action="">
         {% csrf_token %}
         <input type="hidden" name="action" value="delete_session">
@@ -19,9 +28,7 @@
     <form method="post" action="">
         {% csrf_token %}
         <input type="hidden" name="action" value="add_session">
-        Team ID: <input type="number" name="team_id" required><br>
         Stadium Name: <input type="text" name="stadium_name" required><br>
-        Stadium Country: <input type="text" name="stadium_country" required><br>
         Date: <input type="date" name="date" required><br>
         Time Slot: <input type="number" name="time_slot" required><br>
         Jury Name: <input type="text" name="jury_name" required><br>
