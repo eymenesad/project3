@@ -27,7 +27,6 @@ def login_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         
-        
        
         # Check if user is a Player
         cursor.execute("SELECT * FROM player WHERE username = %s AND password = %s", [username, password])
@@ -316,9 +315,14 @@ def player_dashboard_view(request):
     return render(request, 'login/player_dashboard.html', context)
 
 def manager_dashboard_view(request):
+    cursor.execute("SELECT stadium_name FROM Stadium")
+    stadiums = cursor.fetchall()
     if request.method == 'POST':
+        
         form_type = request.POST.get('form_type')
+        
         if form_type == 'update_stadium':
+            
             old_name = request.POST.get('old_name')
             new_name = request.POST.get('new_name')
             cursor.execute("UPDATE stadium SET stadium_name = %s WHERE stadium_name = %s", [new_name, old_name])
@@ -356,4 +360,4 @@ def manager_dashboard_view(request):
             return HttpResponse("User added successfully.")
 
     # GET request: render the manager dashboard template
-    return render(request, 'login/manager_dashboard.html')
+    return render(request, 'login/manager_dashboard.html', {'stadiums': stadiums})

@@ -1,12 +1,20 @@
 <form method="post" action="">
-    {% csrf_token %}
-    <input type="hidden" name="form_type" value="update_stadium">
-    Old Stadium Name: <input type="text" name="old_name"><br>
-    New Stadium Name: <input type="text" name="new_name"><br>
-    <input type="submit" value="Update Stadium">
-  </form>
+  <h2>Update Stadium</h2>
+  {% csrf_token %}
+  <input type="hidden" name="form_type" value="update_stadium">
+  Old Stadium Name:
+  <select name="old_name">
+    {% for stadium in stadiums %}
+      <option value="{{ stadium.0 }}">{{ stadium.0 }}</option>
+    {% endfor %}
+  </select><br>
+  New Stadium Name: <input type="text" name="new_name"><br>
+  <input type="submit" value="Update Stadium">
+</form>
+
 <!-- Form for adding a Player -->
 <form method="post" action="">
+  <h2> Add Player</h2>
     {% csrf_token %}
     <input type="hidden" name="form_type" value="player">
     Username: <input type="text" name="username" ><br>
@@ -21,6 +29,7 @@
   
   <!-- Form for adding a Coach -->
   <form method="post" action="">
+    <h2> Add Coach</h2>
     {% csrf_token %}
     <input type="hidden" name="form_type" value="coach">
     Username: <input type="text" name="username"><br>
@@ -33,6 +42,7 @@
   
   <!-- Form for adding a Jury -->
   <form method="post" action="">
+    <h2> Add Jury</h2>
     {% csrf_token %}
     <input type="hidden" name="form_type" value="jury">
     Username: <input type="text" name="username"><br>
