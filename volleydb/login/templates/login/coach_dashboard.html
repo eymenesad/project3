@@ -8,6 +8,15 @@
     <h1>Welcome, Coach!</h1>
     <p>This is your dashboard. Manage your team, view player performances, and plan training sessions here.</p>
 
+    <!-- Place for displaying messages -->
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
     <h2>Stadiums List</h2>
     <ul>
         {% for stadium in stadiums_list %}
@@ -21,16 +30,32 @@
     <form method="post" action="">
         {% csrf_token %}
         <input type="hidden" name="action" value="delete_session">
-        Session ID to Delete: <input type="text" name="session_id"><br>
+        Session ID to Delete: 
+        <select name="session_id">
+            {% for session in sessions %}
+                <option value="{{ session.0 }}">{{ session.0 }}</option>
+            {% endfor %}
+        </select><br>
         <input type="submit" value="Delete Session">
     </form>
     <h2>Add Match Session</h2>
     <form method="post" action="">
         {% csrf_token %}
         <input type="hidden" name="action" value="add_session">
-        Stadium Name: <input type="text" name="stadium_name" required><br>
+        Stadium Name: 
+        <select name="stadium_name">
+            {% for stadium in stadiums %}
+                <option value="{{ stadium.0 }}">{{ stadium.0 }}</option>
+            {% endfor %}
+        </select><br>
         Date: <input type="date" name="date" required><br>
-        Time Slot: <input type="number" name="time_slot" required><br>
+        Time Slot: 
+        <select name="time_slot" required>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+        </select><br>
         Jury Name: <input type="text" name="jury_name" required><br>
         Jury Surname: <input type="text" name="jury_surname" required><br>
         <input type="submit" value="Add Session">
@@ -40,7 +65,12 @@
         {% csrf_token %}
         <input type="hidden" name="action" value="create_squad">
         Session ID: <input type="number" name="session_id" required><br>
-        Player Username: <input type="text" name="player_username" required><br>
+        Player:
+        <select name="player">
+            {% for name in players %}
+                <option value="{{ name }}">{{ name }}</option>
+            {% endfor %}
+        </select><br>
         Position ID: <input type="number" name="position_id" required><br>
         <input type="submit" value="Add Player to Squad">
     </form>

@@ -10,6 +10,8 @@ from django.db import IntegrityError, transaction
 from datetime import datetime
 from django.contrib import messages
 from django.db import connection
+from django.db import DatabaseError, transaction
+from django.contrib import messages
 
 mydb = mysql.connector.connect(
   host="127.0.0.1",
@@ -50,7 +52,9 @@ def login_view(request):
         if cursor.fetchone():
             request.session['username'] = username
             return HttpResponseRedirect('/manager_dashboard/')
-        return render(request, 'login.html', {'error': 'Invalid username or password'})
+        else:
+
+            return render(request, 'login/index.html', {'error': 'Invalid username or password'})
     
     return render(request, 'login/index.html')
 
@@ -61,7 +65,8 @@ def dashboard_view(request):
 def jury_dashboard_view(request):
 
     jury_username = request.session.get('username')
-
+    cursor.execute("SELECT stadium_name FROM Stadium")
+    stadiums = cursor.fetchall()
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -132,47 +137,71 @@ def jury_dashboard_view(request):
         # Passing the results to the template
         return render(request, 'login/jury_dashboard.html', {
             'average_rating': average_rating,
-            'total_sessions': total_sessions
+            'total_sessions': total_sessions,
+            'stadiums':stadiums
         })
 
 
 
 def coach_dashboard_view(request):
 
+    coach_username = request.session.get('username')
+    cursor.execute("SELECT stadium_name FROM Stadium")
+    stadiums = cursor.fetchall()
+    cursor.execute("SELECT session_ID FROM MatchSession")
+    sessions = cursor.fetchall()
+
+    query = """
+        SELECT stadium_name, stadium_country 
+        FROM Stadium
+        ORDER BY stadium_name;
+    """
+    
+    cursor.execute(query)
+    stadiums = cursor.fetchall()
+    stadiums_list = [{'name': stadium[0], 'country': stadium[1]} for stadium in stadiums]
+
+    # Modified to fetch player usernames and format them correctly
+    query = """
+        SELECT P.name
+        FROM Player P
+        JOIN PlayerTeams PT ON P.username = PT.username
+        JOIN CoachTeam CT ON PT.team = CT.team_ID
+        WHERE CT.coach_username = %s;
+        """
+    cursor.execute(query, (coach_username,))
+    players_raw = cursor.fetchall()
+    players = [player[0] for player in players_raw]  # Extract usernames from tuples
+
+    # Initialize message variable
+    message = None
+
+    sessions.sort()
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'create_squad':
             session_id = request.POST.get('session_id')
-            player_username = request.POST.get('player_username')
+            player_name = request.POST.get('player')
             position_id = request.POST.get('position_id')
 
-            # Get the coach's username from the session or another source
-            coach_username = request.session.get('username')
-            
-            
-            # Check if the player is in the coach's team
-            cursor.execute("""
-                SELECT COUNT(*)
-                FROM PlayerTeams PT
-                JOIN Team T ON PT.team = T.team_ID
-                WHERE PT.username = %s AND T.coach_username = %s
-            """, [player_username, coach_username])
-            player_count = cursor.fetchone()[0]
-
-            if player_count == 0:
-                return HttpResponse("Player is not in your team.")
-
             try:
-                with transaction.atomic():
-                    cursor.execute("""
-                        INSERT INTO SessionSquads (session_ID, played_player_username, position_ID)
-                        VALUES (%s, %s, %s)
-                    """, [session_id, player_username, position_id])
-                    mydb.commit()
-            except IntegrityError:
-                return HttpResponse("Failed to add player to squad.")
-
-            return HttpResponse("Player added to squad successfully.")
+                cursor.execute("SELECT username FROM Player WHERE name = %s", [player_name])
+                player_username = cursor.fetchone()
+                if player_username:
+                    player_username = player_username[0]
+                    with transaction.atomic():
+                        cursor.execute("""
+                            INSERT INTO SessionSquads (session_ID, played_player_username, position_ID)
+                            VALUES (%s, %s, %s)
+                        """, [session_id, player_username, position_id])
+                        messages.success(request, "Player added to squad successfully.")
+                else:
+                    messages.error(request, "Player not found.")
+            except DatabaseError as e:
+                messages.error(request, f"Database error: {str(e)}")
+            except Exception as e:
+                messages.error(request, f"Unexpected error: {str(e)}")
+            return render(request, 'login/coach_dashboard.html', {'stadiums': stadiums, 'sessions': sessions, 'stadiums_list': stadiums_list, 'players': players, 'messages': messages.get_messages(request)})
         
         if action == 'delete_session':
             session_id = request.POST.get('session_id')
@@ -236,19 +265,9 @@ def coach_dashboard_view(request):
             except IntegrityError:
                 return HttpResponse("Failed to add session due to a scheduling conflict or invalid data.")
 
-            return HttpResponse("Match session added successfully.")
+            return HttpResponse("Match session " + str(new_session_id) + " added successfully.")
     else:
-        query = """
-        SELECT stadium_name, stadium_country 
-        FROM Stadium
-        ORDER BY stadium_name;
-    """
-    
-        cursor.execute(query)
-        stadiums = cursor.fetchall()
-        stadiums_list = [{'name': stadium[0], 'country': stadium[1]} for stadium in stadiums]
-        return render(request, 'login/coach_dashboard.html', {'stadiums_list': stadiums_list})
-    return render(request, 'login/coach_dashboard.html')
+        return render(request, 'login/coach_dashboard.html', {'stadiums': stadiums, 'sessions': sessions, 'stadiums_list': stadiums_list, 'players': players, 'messages': messages.get_messages(request)})
 
 
 def player_dashboard_view(request):

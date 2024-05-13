@@ -15,7 +15,12 @@
         <input type="hidden" name="action" value="rate_session">
         Date: <input type="date" name="date" required><br>
         Time Slot: <input type="number" name="time_slot" required><br>
-        Stadium Name: <input type="text" name="stadium_name" required><br>
+        Stadium Name: 
+        <select name="stadium_name">
+            {% for stadium in stadiums %}
+                <option value="{{ stadium.0 }}">{{ stadium.0 }}</option>
+            {% endfor %}
+        </select><br>
         Rating: <input type="number" name="rating" min="0.0" max="5.0" step="0.1" required placeholder="Enter a rating between 0.0 and 5.0"><br>
         <input type="submit" value="Rate Session">
     </form>
